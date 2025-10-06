@@ -31,17 +31,14 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(ex, HttpStatus.NOT_FOUND);
     }
 
-    @ExceptionHandler({
-            EmailAlreadyInUseException.class,
-    })
-    public ResponseEntity<ErrorResponse> handleConflictException(Exception ex){
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ResponseEntity<ErrorResponse> handleConflictException(EmailAlreadyInUseException ex){
         return buildErrorResponse(ex, HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler({
-            EmailAlreadyInUseException.class,
-    })
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex){
         return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
 }

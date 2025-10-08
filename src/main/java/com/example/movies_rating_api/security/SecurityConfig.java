@@ -34,8 +34,7 @@ public class SecurityConfig {
                         // Public endpoints
                         .requestMatchers("/auth/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/users" //TODO for tests only delete me if I forgt
+                                "/v3/api-docs/**"
                         ).permitAll()
 
                         // ! Just ADMIN !

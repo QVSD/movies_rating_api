@@ -2,6 +2,7 @@ package com.example.movies_rating_api.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -30,10 +31,23 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/auth/**",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/users" //TODO for tests only delete me if I forgt
                         ).permitAll()
+
+                        // ! Just ADMIN !
+                        .requestMatchers(HttpMethod.POST, "/movies/**").hasAnyAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/movies/**").hasAnyAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/users/**").hasAnyAuthority("ADMIN")
+
+                        // Either USER or ADMIN
+                        .requestMatchers(HttpMethod.GET, "/movies/**").hasAnyAuthority("USER", "ADMIN")
+                        .requestMatchers("/ratings/**").hasAnyAuthority("USER", "ADMIN")
+
+                        // Any other request -> authenticated
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

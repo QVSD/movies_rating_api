@@ -1,5 +1,6 @@
 package com.example.movies_rating_api.controller;
 
+import com.example.movies_rating_api.dto.MovieDTO;
 import com.example.movies_rating_api.model.Movie;
 import com.example.movies_rating_api.service.MovieService;
 import org.springframework.http.HttpStatus;
@@ -24,7 +25,13 @@ public class MovieController {
     public ResponseEntity<Movie> getMovieById(@PathVariable Long id) { return ResponseEntity.ok(movieService.getMovieById(id)); }
 
     @PostMapping
-    public ResponseEntity<Movie> createMovie(@RequestBody Movie movie) { return ResponseEntity.status(HttpStatus.CREATED).body(movieService.createMovie(movie)); }
+    public ResponseEntity<MovieDTO> createMovie(@RequestBody Movie movie) {
+        Movie movieCreated = movieService.createMovie(movie);
+        double avg = movieService.computeRatingAverage(movie);
+        MovieDTO dto = new MovieDTO(movieCreated.getId(), movieCreated.getTitle(), movieCreated.getDescription(), avg);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
 
     @PutMapping("/{id}")
     public ResponseEntity<Movie> updateMovie(@PathVariable Long id, @RequestBody Movie movie){ return ResponseEntity.ok(movieService.updateMovie(id, movie)); }

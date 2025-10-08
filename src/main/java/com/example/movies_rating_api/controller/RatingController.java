@@ -1,9 +1,11 @@
 package com.example.movies_rating_api.controller;
 
+import com.example.movies_rating_api.dto.RatingDTO;
 import com.example.movies_rating_api.model.Movie;
 import com.example.movies_rating_api.model.Rating;
 import com.example.movies_rating_api.model.User;
 import com.example.movies_rating_api.service.RatingService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,10 +26,18 @@ public class RatingController {
     @GetMapping("/{id}")
     public ResponseEntity<Rating> getRatingById(@PathVariable Long id) { return ResponseEntity.ok(ratingService.getRatingById(id)); }
 
-    @PostMapping("/user/{userId}/movie/{movieId}")
-    public ResponseEntity<Rating> addRating(@PathVariable Long userId, @PathVariable Long movieId, @RequestBody Rating rating){
-        return ResponseEntity.status(HttpStatus.CREATED).body(ratingService.addRating(userId, movieId, rating));
+    @PostMapping
+    public ResponseEntity<Rating> addRating(@Valid @RequestBody RatingDTO ratingDTO) {
+        Rating rating = ratingService.addRating(ratingDTO.getUserId(), ratingDTO.getMovieId(), dtoToEntity(ratingDTO));
 
+        return ResponseEntity.status(HttpStatus.CREATED).body(rating);
+    }
+
+    private Rating dtoToEntity(RatingDTO ratingDTO){
+        Rating r = new Rating();
+        r.setValue(ratingDTO.getValue());
+        r.setComment(ratingDTO.getComment());
+        return r;
     }
 
     @PutMapping("/{id}")

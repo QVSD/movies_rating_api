@@ -1,5 +1,6 @@
 package com.example.movies_rating_api.service;
 
+import com.example.movies_rating_api.dto.UserRegisterDTO;
 import com.example.movies_rating_api.exception.user.email.EmailAlreadyInUseException;
 import com.example.movies_rating_api.exception.user.email.EmailNotFoundException;
 import com.example.movies_rating_api.exception.UserNotFoundException;
@@ -36,6 +37,14 @@ public class UserService {
         else{
             throw new EmailAlreadyInUseException("User email already in use!");
         }
+    }
+
+    public User registerUserFromDTO(UserRegisterDTO dto){
+        User newUser = new User();
+        newUser.setUsername(dto.getUsername());
+        newUser.setEmail(dto.getEmail());
+        newUser.setPassword(dto.getPassword());
+        return registerUser(newUser);
     }
 
     public User updateUser(Long id, User userBody){

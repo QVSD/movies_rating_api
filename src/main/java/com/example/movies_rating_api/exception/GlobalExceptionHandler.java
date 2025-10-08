@@ -5,6 +5,7 @@ import com.example.movies_rating_api.exception.user.email.EmailNotFoundException
 import jdk.jfr.Experimental;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -39,6 +40,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex){
         return buildErrorResponse(ex, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationErrors(MethodArgumentNotValidException ex) {
+        String errorMessage = ex.getBindingResult().getFieldErrors().stream()
+                .map(fieldError -> fieldError.getField() + ": " + fieldError.getDefaultMessage())
+                .findFirst()
+                .orElse("Invalid input");
+
+        ErrorResponse error = new ErrorResponse();
+        error.setTimestamp(LocalDateTime.now().toString());
+        error.setStatus(HttpStatus.BAD_REQUEST.value());
+        error.setMessage(errorMessage);
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
 }

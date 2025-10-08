@@ -1,16 +1,18 @@
 package com.example.movies_rating_api.controller.auth;
 
+import com.example.movies_rating_api.dto.AuthResponse;
+import com.example.movies_rating_api.dto.UserRegisterDTO;
 import com.example.movies_rating_api.model.User;
+import com.example.movies_rating_api.security.CustomUserDetailsService;
 import com.example.movies_rating_api.security.JwtService;
 import com.example.movies_rating_api.service.UserService;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,41 +20,50 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-    private final UserService userService;
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
+    private final UserService userService;
 
-    public AuthController(
-            AuthenticationConfiguration authenticationConfiguration,
-            UserService userService,
-            JwtService jwtService,
-            PasswordEncoder passwordEncoder
-    ) throws Exception {
-        this.authenticationManager = authenticationConfiguration.getAuthenticationManager();
-        this.userService = userService;
+    public AuthController(AuthenticationManager authenticationManager, JwtService jwtService, UserService userService) {
+        this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
-        this.passwordEncoder = passwordEncoder;
+        this.userService = userService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<User> register(@RequestBody User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        User savedUser = userService.registerUser(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedUser);
+    public ResponseEntity<AuthResponse> register(@RequestBody UserRegisterDTO registerDTO) {
+        User user = userService.registerUserFromDTO(registerDTO);
+        String accessToken = jwtService.generateToken(user.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(user.getEmail());
+        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody User user) {
-        try {
-            Authentication auth = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(user.getEmail(), user.getPassword())
-            );
+    public ResponseEntity<AuthResponse> login(@RequestBody UserRegisterDTO loginDTO) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginDTO.getEmail(), loginDTO.getPassword())
+        );
 
-            String token = jwtService.generateToken(user.getEmail());
-            return ResponseEntity.ok(token);
+        UserDetails user = (UserDetails) authentication.getPrincipal();
+        String accessToken = jwtService.generateToken(user.getUsername());
+        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
 
-        } catch (AuthenticationException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
-        }
+        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
     }
+
+    @Autowired
+    private CustomUserDetailsService customUserDetailsService;
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@RequestBody String refreshToken) {
+        String username = jwtService.extractUsername(refreshToken);
+        UserDetails user = customUserDetailsService.loadUserByUsername(username);
+
+        if (jwtService.isTokenValid(refreshToken, user)) {
+            String newAccess = jwtService.generateToken(username);
+            return ResponseEntity.ok(new AuthResponse(newAccess, refreshToken));
+        }
+
+        return ResponseEntity.status(403).build();
+    }
+
 }
